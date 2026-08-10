@@ -29,7 +29,7 @@ struct SettingsView: View {
         switch store.selectedSettingsTab {
         case .account:
             if store.errorMessage != nil { return 350 }
-            return store.isConnected ? 200 : 280
+            return store.isConnected ? 240 : 280
         case .repositories:
             return 500
         }
@@ -61,6 +61,21 @@ private struct AccountSettingsView: View {
                     LabeledContent("Token") {
                         Label("Stored in Keychain", systemImage: "lock.fill")
                             .foregroundStyle(.secondary)
+                    }
+
+                    LabeledContent("Notifications") {
+                        switch store.notificationPermission {
+                        case .unknown:
+                            ProgressView()
+                                .controlSize(.small)
+                        case .enabled:
+                            Label("Enabled", systemImage: "bell.fill")
+                                .foregroundStyle(.secondary)
+                        case .disabled:
+                            Button("Open Notification Settings") {
+                                store.openNotificationSettings()
+                            }
+                        }
                     }
 
                     Button("Disconnect", role: .destructive) {
@@ -114,6 +129,9 @@ private struct AccountSettingsView: View {
         }
         .formStyle(.grouped)
         .padding(10)
+        .task {
+            await store.refreshNotificationPermission()
+        }
     }
 
     private func connect() {

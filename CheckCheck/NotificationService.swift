@@ -1,20 +1,51 @@
 import AppKit
 import Foundation
+import OSLog
 import UserNotifications
+
+enum NotificationPermission: Equatable {
+    case unknown
+    case enabled
+    case disabled
+}
 
 final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     private let center = UNUserNotificationCenter.current()
+    private let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "CheckCheck",
+        category: "Notifications"
+    )
 
     override init() {
         super.init()
         center.delegate = self
     }
 
-    func requestAuthorization() async {
-        _ = try? await center.requestAuthorization(options: [.alert, .sound])
+    func prepareAuthorization() async -> NotificationPermission {
+        let settings = await center.notificationSettings()
+
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            return .enabled
+        case .denied:
+            return .disabled
+        case .notDetermined:
+            do {
+                let granted = try await center.requestAuthorization(options: [.alert, .sound])
+                return granted ? .enabled : .disabled
+            } catch {
+                logger.error("Notification authorization failed: \(error.localizedDescription, privacy: .public)")
+                return .disabled
+            }
+        @unknown default:
+            return .disabled
+        }
     }
 
-    func send(event: CheckEvent) {
+    func send(event: CheckEvent) async -> NotificationPermission {
+        let permission = await prepareAuthorization()
+        guard permission == .enabled else { return permission }
+
         let check = event.check
         let content = UNMutableNotificationContent()
         content.title = "\(check.phase.notificationVerb): \(check.name)"
@@ -30,7 +61,12 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             content: content,
             trigger: nil
         )
-        center.add(request)
+        do {
+            try await center.add(request)
+        } catch {
+            logger.error("Notification delivery failed: \(error.localizedDescription, privacy: .public)")
+        }
+        return permission
     }
 
     func userNotificationCenter(

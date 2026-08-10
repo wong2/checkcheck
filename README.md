@@ -27,6 +27,10 @@ Or build from Terminal:
 xcodebuild -project CheckCheck.xcodeproj -scheme CheckCheck -configuration Debug build
 ```
 
+The project uses ad-hoc signing for local development. Do not pass
+`CODE_SIGNING_ALLOWED=NO`: macOS requires a signed app identity to register
+local notification permissions.
+
 ## GitHub token
 
 Create a [personal access token (classic)](https://github.com/settings/tokens/new?scopes=repo&description=CheckCheck%20for%20macOS) at GitHub Settings > Developer settings > Personal access tokens. GitHub's Checks API does not currently support fine-grained personal access tokens.
@@ -38,4 +42,4 @@ The token never leaves the Mac except in authenticated requests to `api.github.c
 
 ## MVP behavior
 
-CheckCheck polls once per minute while running. It monitors Check Runs attached to the latest commit of each selected repository's default branch. GitHub API rate limits and individual API errors are shown in the popover footer.
+CheckCheck polls every 10 seconds while a Check is queued or running, and once per minute while idle. It monitors current Check Runs from recent commits on each selected repository's default branch. GitHub API rate limits and individual API errors are shown in the popover footer.

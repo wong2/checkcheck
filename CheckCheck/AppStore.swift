@@ -12,6 +12,7 @@ final class AppStore: ObservableObject {
     @Published private(set) var isRefreshing = false
     @Published private(set) var lastRefresh: Date?
     @Published private(set) var errorMessage: String?
+    @Published private(set) var notificationPermission = NotificationPermission.unknown
     @Published var repositorySearch = ""
     @Published var selectedRepositoryOwner = ""
     @Published var selectedSettingsTab = SettingsTab.account
@@ -118,6 +119,11 @@ final class AppStore: ObservableObject {
         user = load(GitHubUser.self, key: Keys.user)
         selectedRepositoryOwner = user?.login ?? ""
 
+        Task { [weak self] in
+            guard let self else { return }
+            self.notificationPermission = await self.notifications.prepareAuthorization()
+        }
+
         pollingTask = Task { [weak self] in
             guard let self else { return }
             await self.reloadRepositories()
@@ -146,8 +152,8 @@ final class AppStore: ObservableObject {
             user = newUser
             selectedRepositoryOwner = newUser.login
             save(newUser, key: Keys.user)
+            notificationPermission = await notifications.prepareAuthorization()
             Task { await reloadRepositories() }
-            Task { await notifications.requestAuthorization() }
             return true
         } catch {
             errorMessage = error.localizedDescription
@@ -277,7 +283,9 @@ final class AppStore: ObservableObject {
                     current: notificationChecks,
                     suppressNotifications: suppress
                 )
-                events.forEach(notifications.send(event:))
+                for event in events {
+                    notificationPermission = await notifications.send(event: event)
+                }
 
                 snapshots = snapshots.filter { !$0.key.hasPrefix("\(repository.id):") }
                 repositoryChecks.forEach { snapshots[$0.id] = CheckSnapshot(phase: $0.phase) }
@@ -311,6 +319,17 @@ final class AppStore: ObservableObject {
 
     func open(_ check: MonitoredCheck) {
         NSWorkspace.shared.open(check.url)
+    }
+
+    func refreshNotificationPermission() async {
+        notificationPermission = await notifications.prepareAuthorization()
+    }
+
+    func openNotificationSettings() {
+        guard let url = URL(
+            string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension"
+        ) else { return }
+        NSWorkspace.shared.open(url)
     }
 
     private func startPolling() async {

@@ -148,7 +148,14 @@ struct MenuBarView: View {
             Button {
                 Task { await store.refresh() }
             } label: {
-                RefreshIcon(isRefreshing: store.isRefreshing)
+                Group {
+                    if store.isRefreshing {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                }
                     .frame(width: 22, height: 22)
                     .contentShape(Rectangle())
             }
@@ -191,24 +198,6 @@ struct MenuBarView: View {
         }
         components.append("Updated \(check.updatedAt.formatted(date: .abbreviated, time: .shortened))")
         return components.joined(separator: ", ")
-    }
-}
-
-private struct RefreshIcon: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    let isRefreshing: Bool
-
-    var body: some View {
-        Image(systemName: isRefreshing ? "progress.indicator" : "arrow.clockwise")
-            .rotationEffect(.degrees(isRefreshing && !reduceMotion ? 360 : 0))
-            .animation(
-                isRefreshing && !reduceMotion
-                    ? .linear(duration: 0.8).repeatForever(autoreverses: false)
-                    : nil,
-                value: isRefreshing
-            )
-            .frame(width: 22, height: 22)
     }
 }
 

@@ -132,7 +132,11 @@ actor GitHubClient {
 
         guard let url = components.url else { throw GitHubError.invalidResponse }
 
-        var request = URLRequest(url: url, timeoutInterval: 20)
+        var request = URLRequest(
+            url: url,
+            cachePolicy: .reloadIgnoringLocalCacheData,
+            timeoutInterval: 20
+        )
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
