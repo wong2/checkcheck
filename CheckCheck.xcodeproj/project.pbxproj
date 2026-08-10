@@ -1,0 +1,439 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		05D49E6EA72A741FA41FD372 /* CheckCheckApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA689097ECE7633C44973A66 /* CheckCheckApp.swift */; };
+		28864448190EABA840DBCB69 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51585EA7ED9AEF1CAF6B757 /* NotificationService.swift */; };
+		344F94A052A4E4E5956AAA8F /* StatusChangeDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D70AF21022384F9DA859652 /* StatusChangeDetectorTests.swift */; };
+		56A075325383609D89166A43 /* GitHubClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C2CE3E04C6C0B1A6EACA343 /* GitHubClient.swift */; };
+		5FCC8B0EE68D86964BCF463C /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A3A5F4DE7DF464A26FFB08 /* MenuBarView.swift */; };
+		8456AA7CDD38D4D976AF9D14 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC09FE882579D7194FB48C0D /* AppStore.swift */; };
+		AACEF3CF5711C5723D11729C /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22688FC4C20BB5F46C6BF5CE /* Models.swift */; };
+		B324F2C0FF3535BD915D605D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB5D2B6C204AF7AC8B0DC4F9 /* SettingsView.swift */; };
+		B5A5C2A8D4BE62772E232FE8 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B4D4B4DFEF83439AFBE05DC /* KeychainStore.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		8A6B926F72FEB85CFA942F0A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6BE91F17B0F0D073E4CE7EA0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B7CE21E941C74BBFDE0A56E9;
+			remoteInfo = CheckCheck;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		22688FC4C20BB5F46C6BF5CE /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		2C2CE3E04C6C0B1A6EACA343 /* GitHubClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubClient.swift; sourceTree = "<group>"; };
+		2D70AF21022384F9DA859652 /* StatusChangeDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusChangeDetectorTests.swift; sourceTree = "<group>"; };
+		69A3A5F4DE7DF464A26FFB08 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		6B4D4B4DFEF83439AFBE05DC /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		93586DABD041D2078E40F028 /* CheckCheckTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CheckCheckTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		990D983BAC53498D7C5DCD61 /* CheckCheck.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CheckCheck.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCD0380551F0DAB312773530 /* CheckCheck.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CheckCheck.entitlements; sourceTree = "<group>"; };
+		CB5D2B6C204AF7AC8B0DC4F9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		CC09FE882579D7194FB48C0D /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
+		DA689097ECE7633C44973A66 /* CheckCheckApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckCheckApp.swift; sourceTree = "<group>"; };
+		E51585EA7ED9AEF1CAF6B757 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		23AFC98C936F133E45B04810 = {
+			isa = PBXGroup;
+			children = (
+				F2440C73395266F6E0990C05 /* CheckCheck */,
+				D630CA902E139A0E6462A62E /* CheckCheckTests */,
+				792839913FED1F685291FDB0 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		791E61607B8D3FE4C495EE08 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				69A3A5F4DE7DF464A26FFB08 /* MenuBarView.swift */,
+				CB5D2B6C204AF7AC8B0DC4F9 /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		792839913FED1F685291FDB0 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				990D983BAC53498D7C5DCD61 /* CheckCheck.app */,
+				93586DABD041D2078E40F028 /* CheckCheckTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D630CA902E139A0E6462A62E /* CheckCheckTests */ = {
+			isa = PBXGroup;
+			children = (
+				2D70AF21022384F9DA859652 /* StatusChangeDetectorTests.swift */,
+			);
+			path = CheckCheckTests;
+			sourceTree = "<group>";
+		};
+		F2440C73395266F6E0990C05 /* CheckCheck */ = {
+			isa = PBXGroup;
+			children = (
+				CC09FE882579D7194FB48C0D /* AppStore.swift */,
+				BCD0380551F0DAB312773530 /* CheckCheck.entitlements */,
+				DA689097ECE7633C44973A66 /* CheckCheckApp.swift */,
+				2C2CE3E04C6C0B1A6EACA343 /* GitHubClient.swift */,
+				6B4D4B4DFEF83439AFBE05DC /* KeychainStore.swift */,
+				22688FC4C20BB5F46C6BF5CE /* Models.swift */,
+				E51585EA7ED9AEF1CAF6B757 /* NotificationService.swift */,
+				791E61607B8D3FE4C495EE08 /* Views */,
+			);
+			path = CheckCheck;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		7E9FCB4024390722DE43F10D /* CheckCheckTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7D6FA1452F9216283EE737FD /* Build configuration list for PBXNativeTarget "CheckCheckTests" */;
+			buildPhases = (
+				B63DE36BBC0C8425872AEDE4 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				234BEDACBDF1C8244C290022 /* PBXTargetDependency */,
+			);
+			name = CheckCheckTests;
+			packageProductDependencies = (
+			);
+			productName = CheckCheckTests;
+			productReference = 93586DABD041D2078E40F028 /* CheckCheckTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B7CE21E941C74BBFDE0A56E9 /* CheckCheck */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0EA294B6F2CA26FAB8DBAA54 /* Build configuration list for PBXNativeTarget "CheckCheck" */;
+			buildPhases = (
+				2A0CDAF0449C51A3EB086169 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CheckCheck;
+			packageProductDependencies = (
+			);
+			productName = CheckCheck;
+			productReference = 990D983BAC53498D7C5DCD61 /* CheckCheck.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		6BE91F17B0F0D073E4CE7EA0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					7E9FCB4024390722DE43F10D = {
+						DevelopmentTeam = "";
+					};
+					B7CE21E941C74BBFDE0A56E9 = {
+						DevelopmentTeam = "";
+					};
+				};
+			};
+			buildConfigurationList = EF11E7EDCE2690F55E73C217 /* Build configuration list for PBXProject "CheckCheck" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 23AFC98C936F133E45B04810;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 792839913FED1F685291FDB0 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B7CE21E941C74BBFDE0A56E9 /* CheckCheck */,
+				7E9FCB4024390722DE43F10D /* CheckCheckTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2A0CDAF0449C51A3EB086169 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8456AA7CDD38D4D976AF9D14 /* AppStore.swift in Sources */,
+				05D49E6EA72A741FA41FD372 /* CheckCheckApp.swift in Sources */,
+				56A075325383609D89166A43 /* GitHubClient.swift in Sources */,
+				B5A5C2A8D4BE62772E232FE8 /* KeychainStore.swift in Sources */,
+				5FCC8B0EE68D86964BCF463C /* MenuBarView.swift in Sources */,
+				AACEF3CF5711C5723D11729C /* Models.swift in Sources */,
+				28864448190EABA840DBCB69 /* NotificationService.swift in Sources */,
+				B324F2C0FF3535BD915D605D /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B63DE36BBC0C8425872AEDE4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				344F94A052A4E4E5956AAA8F /* StatusChangeDetectorTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		234BEDACBDF1C8244C290022 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B7CE21E941C74BBFDE0A56E9 /* CheckCheck */;
+			targetProxy = 8A6B926F72FEB85CFA942F0A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		016EA17A21CE6C7B41099228 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.wong2.CheckCheckTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CheckCheck.app/Contents/MacOS/CheckCheck";
+			};
+			name = Debug;
+		};
+		0BC0EF1BB8C590D2827BD8F1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.10;
+			};
+			name = Release;
+		};
+		302B368DADA5C524960240E2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CheckCheck/CheckCheck.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CheckCheck;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_LSUIElement = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.wong2.CheckCheck;
+				PRODUCT_NAME = CheckCheck;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		37CC812D0A345441B31E9985 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CheckCheck/CheckCheck.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CheckCheck;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_LSUIElement = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.wong2.CheckCheck;
+				PRODUCT_NAME = CheckCheck;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		6996F34302B0D0F3C668D692 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.wong2.CheckCheckTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CheckCheck.app/Contents/MacOS/CheckCheck";
+			};
+			name = Release;
+		};
+		EADDFE9E9E5B4927A703CABE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.10;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0EA294B6F2CA26FAB8DBAA54 /* Build configuration list for PBXNativeTarget "CheckCheck" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				302B368DADA5C524960240E2 /* Debug */,
+				37CC812D0A345441B31E9985 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		7D6FA1452F9216283EE737FD /* Build configuration list for PBXNativeTarget "CheckCheckTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				016EA17A21CE6C7B41099228 /* Debug */,
+				6996F34302B0D0F3C668D692 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EF11E7EDCE2690F55E73C217 /* Build configuration list for PBXProject "CheckCheck" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EADDFE9E9E5B4927A703CABE /* Debug */,
+				0BC0EF1BB8C590D2827BD8F1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 6BE91F17B0F0D073E4CE7EA0 /* Project object */;
+}

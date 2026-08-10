@@ -1,0 +1,41 @@
+name: CheckCheck
+options:
+  bundleIdPrefix: com.wong2
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    DEVELOPMENT_TEAM: ""
+targets:
+  CheckCheck:
+    type: application
+    platform: macOS
+    sources:
+      - path: CheckCheck
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wong2.CheckCheck
+        PRODUCT_NAME: CheckCheck
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: CheckCheck
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+        INFOPLIST_KEY_LSUIElement: YES
+        CODE_SIGN_ENTITLEMENTS: CheckCheck/CheckCheck.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_IDENTITY: "-"
+    scheme:
+      testTargets:
+        - CheckCheckTests
+  CheckCheckTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: CheckCheckTests
+    dependencies:
+      - target: CheckCheck
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wong2.CheckCheckTests
+        GENERATE_INFOPLIST_FILE: YES
