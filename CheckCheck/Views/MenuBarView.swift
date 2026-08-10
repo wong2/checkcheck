@@ -33,6 +33,12 @@ struct MenuBarView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
+            Image(nsImage: applicationIcon)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 28, height: 28)
+                .accessibilityHidden(true)
+
             Text("CheckCheck")
                 .font(.system(size: 14, weight: .semibold))
 
@@ -188,6 +194,14 @@ struct MenuBarView: View {
         dismiss()
         openSettings()
         NSApp.activate()
+    }
+
+    private var applicationIcon: NSImage {
+        guard let url = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+              let image = NSImage(contentsOf: url) else {
+            return NSApplication.shared.applicationIconImage
+        }
+        return image
     }
 
     private func checkAccessibilityLabel(_ check: MonitoredCheck) -> String {

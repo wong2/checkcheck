@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		05D49E6EA72A741FA41FD372 /* CheckCheckApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA689097ECE7633C44973A66 /* CheckCheckApp.swift */; };
+		15F352C00152974FF1BE5EE4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1339A285CEA10F64DD07AE7B /* Assets.xcassets */; };
 		28864448190EABA840DBCB69 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E51585EA7ED9AEF1CAF6B757 /* NotificationService.swift */; };
 		344F94A052A4E4E5956AAA8F /* StatusChangeDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D70AF21022384F9DA859652 /* StatusChangeDetectorTests.swift */; };
 		56A075325383609D89166A43 /* GitHubClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C2CE3E04C6C0B1A6EACA343 /* GitHubClient.swift */; };
@@ -29,6 +30,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1339A285CEA10F64DD07AE7B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		22688FC4C20BB5F46C6BF5CE /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		2C2CE3E04C6C0B1A6EACA343 /* GitHubClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubClient.swift; sourceTree = "<group>"; };
 		2D70AF21022384F9DA859652 /* StatusChangeDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusChangeDetectorTests.swift; sourceTree = "<group>"; };
@@ -83,6 +85,7 @@
 			isa = PBXGroup;
 			children = (
 				CC09FE882579D7194FB48C0D /* AppStore.swift */,
+				1339A285CEA10F64DD07AE7B /* Assets.xcassets */,
 				BCD0380551F0DAB312773530 /* CheckCheck.entitlements */,
 				DA689097ECE7633C44973A66 /* CheckCheckApp.swift */,
 				2C2CE3E04C6C0B1A6EACA343 /* GitHubClient.swift */,
@@ -120,6 +123,7 @@
 			buildConfigurationList = 0EA294B6F2CA26FAB8DBAA54 /* Build configuration list for PBXNativeTarget "CheckCheck" */;
 			buildPhases = (
 				2A0CDAF0449C51A3EB086169 /* Sources */,
+				CAE4EA52DE51438AA2AA4382 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -168,6 +172,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CAE4EA52DE51438AA2AA4382 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				15F352C00152974FF1BE5EE4 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		2A0CDAF0449C51A3EB086169 /* Sources */ = {
