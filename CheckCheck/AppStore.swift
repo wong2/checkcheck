@@ -15,7 +15,6 @@ final class AppStore: ObservableObject {
     @Published private(set) var notificationPermission = NotificationPermission.unknown
     @Published var repositorySearch = ""
     @Published var selectedRepositoryOwner = ""
-    @Published var selectedSettingsTab = SettingsTab.account
     @Published var selectedRepositoryIDs: Set<Int64> = [] {
         didSet {
             guard selectedRepositoryIDs != oldValue else { return }

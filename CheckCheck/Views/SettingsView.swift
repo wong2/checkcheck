@@ -5,18 +5,22 @@ struct SettingsView: View {
     @EnvironmentObject private var store: AppStore
 
     var body: some View {
-        TabView(selection: $store.selectedSettingsTab) {
+        VStack(spacing: 14) {
             AccountSettingsView()
                 .environmentObject(store)
-                .tabItem { Label("Account", systemImage: "person.crop.circle") }
-                .tag(SettingsTab.account)
 
-            RepositorySettingsView()
-                .environmentObject(store)
-                .tabItem { Label("Repositories", systemImage: "shippingbox") }
-                .tag(SettingsTab.repositories)
+            if store.isConnected {
+                RepositorySettingsView()
+                    .environmentObject(store)
+                    .frame(maxHeight: .infinity)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
         }
-        .frame(width: 620, height: settingsHeight)
+        .padding(20)
+        .frame(width: 620)
+        .frame(minHeight: minimumWindowHeight, maxHeight: .infinity, alignment: .top)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .animation(.easeInOut(duration: 0.2), value: store.isConnected)
         .onAppear {
             NSApp.setActivationPolicy(.regular)
         }
@@ -25,20 +29,10 @@ struct SettingsView: View {
         }
     }
 
-    private var settingsHeight: CGFloat {
-        switch store.selectedSettingsTab {
-        case .account:
-            if store.errorMessage != nil { return 350 }
-            return store.isConnected ? 240 : 280
-        case .repositories:
-            return 500
-        }
+    private var minimumWindowHeight: CGFloat {
+        if store.isConnected { return 460 }
+        return store.errorMessage == nil ? 180 : 240
     }
-}
-
-enum SettingsTab {
-    case account
-    case repositories
 }
 
 private struct AccountSettingsView: View {
@@ -50,57 +44,54 @@ private struct AccountSettingsView: View {
     )!
 
     var body: some View {
-        Form {
-            Section("GitHub account") {
-                if let user = store.user, store.isConnected {
-                    LabeledContent("Signed in as") {
-                        Text("@\(user.login)")
-                            .fontWeight(.medium)
-                    }
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 12) {
+                Image(systemName: "person.crop.circle")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 30, height: 30)
 
-                    LabeledContent("Token") {
-                        Label("Stored in Keychain", systemImage: "lock.fill")
-                            .foregroundStyle(.secondary)
-                    }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("GitHub account")
+                        .font(.headline)
 
-                    LabeledContent("Notifications") {
-                        switch store.notificationPermission {
-                        case .unknown:
-                            ProgressView()
-                                .controlSize(.small)
-                        case .enabled:
-                            Label("Enabled", systemImage: "bell.fill")
-                                .foregroundStyle(.secondary)
-                        case .disabled:
-                            Button("Open Notification Settings") {
-                                store.openNotificationSettings()
-                            }
-                        }
-                    }
+                    Text(accountSubtitle)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
 
+                Spacer()
+
+                if store.isConnected {
                     Button("Disconnect", role: .destructive) {
                         store.disconnect()
                     }
-                } else {
-                    HStack {
-                        Text("Personal access token")
-                        Spacer()
+                }
+            }
+            .padding(14)
+
+            if store.isConnected {
+                Divider()
+
+                HStack(spacing: 20) {
+                    statusItem("Token", value: "Stored in Keychain", systemImage: "lock.fill")
+
+                    Divider()
+                        .frame(height: 24)
+
+                    notificationStatus
+                }
+                .padding(.horizontal, 14)
+                .frame(height: 46)
+            } else {
+                Divider()
+
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) {
                         SecureField("Personal access token", text: $token, prompt: Text("ghp_…"))
-                            .labelsHidden()
                             .textFieldStyle(.roundedBorder)
-                            .frame(width: 320)
                             .onSubmit(connect)
-                    }
 
-                    Text("Use a classic token with the repo scope to monitor private repositories. Public repositories do not require a scope.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-
-                    HStack {
-                        Link(destination: tokenCreationURL) {
-                            Label("Create token on GitHub", systemImage: "arrow.up.right.square")
-                        }
-                        Spacer()
                         Button {
                             connect()
                         } label: {
@@ -111,26 +102,85 @@ private struct AccountSettingsView: View {
                                 }
                                 Text(store.isConnecting ? "Verifying…" : "Connect")
                             }
-                            .frame(minWidth: 76)
+                            .frame(minWidth: 72)
                         }
-                            .buttonStyle(.borderedProminent)
-                            .disabled(token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || store.isConnecting)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || store.isConnecting)
+                    }
+
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Classic tokens need the repo scope for private repositories.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        Link("Create token on GitHub", destination: tokenCreationURL)
+                            .font(.caption)
                     }
                 }
+                .padding(14)
             }
 
             if let error = store.errorMessage {
-                Section {
-                    Label(error, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                        .textSelection(.enabled)
-                }
+                Divider()
+
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
+                    .padding(14)
             }
         }
-        .formStyle(.grouped)
-        .padding(10)
+        .settingsCard()
         .task {
             await store.refreshNotificationPermission()
+        }
+    }
+
+    private var accountSubtitle: String {
+        if let user = store.user, store.isConnected {
+            return "Connected as @\(user.login)"
+        }
+        return "Connect once, then choose the repositories to monitor."
+    }
+
+    private func statusItem(_ title: String, value: String, systemImage: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.callout)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var notificationStatus: some View {
+        switch store.notificationPermission {
+        case .unknown:
+            HStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Checking notifications…")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        case .enabled:
+            statusItem("Notifications", value: "Enabled", systemImage: "bell.fill")
+        case .disabled:
+            HStack(spacing: 10) {
+                statusItem("Notifications", value: "Disabled", systemImage: "bell.slash.fill")
+
+                Button("Open Settings") {
+                    store.openNotificationSettings()
+                }
+                .controlSize(.small)
+            }
         }
     }
 
@@ -148,35 +198,73 @@ private struct RepositorySettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if store.isConnected {
-                HStack(spacing: 10) {
-                    if let user = store.user {
-                        Picker("Repository owner", selection: $store.selectedRepositoryOwner) {
-                            Label("Personal", systemImage: "person")
-                                .tag(user.login)
+            HStack(spacing: 12) {
+                Image(systemName: "shippingbox")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24)
 
-                            ForEach(store.repositoryOwners.filter {
-                                $0.login.caseInsensitiveCompare(user.login) != .orderedSame
-                            }) { owner in
-                                Label(
-                                    owner.login,
-                                    systemImage: owner.isOrganization ? "building.2" : "person.2"
-                                )
-                                .tag(owner.login)
-                            }
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .fixedSize()
-
-                        Divider()
-                            .frame(height: 18)
-                    }
-
-                    Image(systemName: "magnifyingglass")
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Repositories")
+                        .font(.headline)
+                    Text("Choose which repositories appear in the menu bar.")
+                        .font(.callout)
                         .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Text("\(store.selectedRepositoryCount) monitored")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(.quaternary, in: Capsule())
+
+                Button {
+                    Task { await store.reloadRepositories() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+                .disabled(store.isLoadingRepositories)
+                .frame(width: 24, height: 24)
+                .contentShape(Rectangle())
+                .help("Reload repositories")
+                .accessibilityLabel("Reload repositories")
+            }
+            .padding(14)
+
+            Divider()
+
+            HStack(spacing: 8) {
+                if let user = store.user {
+                    Picker("Repository owner", selection: $store.selectedRepositoryOwner) {
+                        Label("Personal", systemImage: "person")
+                            .tag(user.login)
+
+                        ForEach(store.repositoryOwners.filter {
+                            $0.login.caseInsensitiveCompare(user.login) != .orderedSame
+                        }) { owner in
+                            Label(
+                                owner.login,
+                                systemImage: owner.isOrganization ? "building.2" : "person.2"
+                            )
+                            .tag(owner.login)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .fixedSize()
+                }
+
+                HStack(spacing: 7) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.tertiary)
+
                     TextField("Filter repositories", text: $store.repositorySearch)
                         .textFieldStyle(.plain)
+
                     if !store.repositorySearch.isEmpty {
                         Button {
                             store.repositorySearch = ""
@@ -185,84 +273,97 @@ private struct RepositorySettingsView: View {
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(.secondary)
+                        .frame(width: 20, height: 20)
+                        .contentShape(Rectangle())
+                        .help("Clear repository filter")
                         .accessibilityLabel("Clear repository filter")
                     }
                 }
-                .padding(.horizontal, 12)
-                .frame(height: 36)
-                .background(Color(nsColor: .controlBackgroundColor))
-
-                Divider()
+                .padding(.horizontal, 9)
+                .frame(height: 26)
+                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color(nsColor: .separatorColor).opacity(0.55))
+                }
             }
+            .padding(.horizontal, 14)
+            .frame(height: 44)
 
-            if !store.isConnected {
-                ContentUnavailableView(
-                    "Connect GitHub first",
-                    systemImage: "person.crop.circle.badge.exclamationmark",
-                    description: Text("Add a token in Account settings before choosing repositories.")
-                )
-            } else if store.repositories.isEmpty && store.isLoadingRepositories {
-                ProgressView("Loading repositories…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if store.filteredRepositories.isEmpty && store.repositorySearch.isEmpty {
-                ContentUnavailableView(
-                    "No repositories",
-                    systemImage: "shippingbox",
-                    description: Text("No repositories are available for this owner.")
-                )
-            } else if store.filteredRepositories.isEmpty {
-                ContentUnavailableView.search(text: store.repositorySearch)
-            } else {
-                List(store.filteredRepositories) { repository in
-                    let isMonitored = store.selectedRepositoryIDs.contains(repository.id)
+            Divider()
 
-                    HStack(spacing: 8) {
-                        Button {
-                            store.setRepository(repository, selected: !isMonitored)
-                        } label: {
-                            Image(systemName: "dot.radiowaves.left.and.right")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(isMonitored ? Color.accentColor : Color.secondary.opacity(0.25))
-                                .frame(width: 24, height: 24)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .help(isMonitored ? "Stop monitoring \(repository.shortName)" : "Monitor \(repository.shortName)")
-                        .accessibilityLabel(
-                            isMonitored ? "Stop monitoring \(repository.shortName)" : "Monitor \(repository.shortName)"
-                        )
+            repositoryContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .settingsCard()
+    }
+
+    @ViewBuilder
+    private var repositoryContent: some View {
+        if store.repositories.isEmpty && store.isLoadingRepositories {
+            ProgressView("Loading repositories…")
+                .controlSize(.small)
+        } else if store.filteredRepositories.isEmpty {
+            VStack(spacing: 7) {
+                Image(systemName: store.repositorySearch.isEmpty ? "shippingbox" : "magnifyingglass")
+                    .font(.system(size: 23, weight: .medium))
+                    .foregroundStyle(.tertiary)
+                Text(store.repositorySearch.isEmpty ? "No repositories available" : "No matching repositories")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        } else {
+            List(store.filteredRepositories) { repository in
+                let isMonitored = store.selectedRepositoryIDs.contains(repository.id)
+
+                Button {
+                    store.setRepository(repository, selected: !isMonitored)
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: isMonitored ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(isMonitored ? Color.accentColor : Color.secondary.opacity(0.45))
 
                         Image(systemName: repository.isPrivate ? "lock.fill" : "shippingbox")
                             .foregroundStyle(.secondary)
                             .frame(width: 16)
+
                         Text(repository.shortName)
-                            .font(.system(.body, design: .monospaced))
+                            .font(.body)
                             .lineLimit(1)
+                            .truncationMode(.middle)
+                            .layoutPriority(1)
+
                         Spacer()
+
                         Text(repository.defaultBranch)
                             .font(.caption)
                             .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .frame(maxWidth: 140, alignment: .trailing)
                     }
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
                 }
-                .listStyle(.inset)
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    isMonitored ? "Stop monitoring \(repository.shortName)" : "Monitor \(repository.shortName)"
+                )
+                .accessibilityValue(isMonitored ? "Monitored" : "Not monitored")
             }
-
-            Divider()
-
-            HStack {
-                Text("\(store.selectedRepositoryCount) monitored")
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button {
-                    Task { await store.reloadRepositories() }
-                } label: {
-                    Label("Reload", systemImage: "arrow.clockwise")
-                }
-                .disabled(!store.isConnected || store.isLoadingRepositories)
-            }
-            .font(.callout)
-            .padding(12)
+            .listStyle(.inset)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+}
+
+private extension View {
+    func settingsCard() -> some View {
+        background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color(nsColor: .separatorColor).opacity(0.55))
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }

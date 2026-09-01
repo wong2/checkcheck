@@ -32,7 +32,7 @@ CheckCheck is a quiet native status instrument: compact, precise, and useful at 
 
 - The menu popover is 380 pt wide with a 12 pt spacing rhythm.
 - The header orients, the list communicates status, and the footer exposes freshness.
-- Settings use a two-tab system layout rather than nesting controls in the popover.
+- Settings use one progressive account-to-repository flow: repository controls appear only after GitHub connects.
 
 ## Depth and elevation
 

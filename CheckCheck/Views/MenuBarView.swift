@@ -84,7 +84,7 @@ struct MenuBarView: View {
             title: "Connect GitHub",
             systemImage: "key.horizontal",
             description: "Connect GitHub to start watching Checks.",
-            settingsTab: .account
+            showsSettingsButton: true
         )
     }
 
@@ -93,7 +93,7 @@ struct MenuBarView: View {
             title: "Choose repositories",
             systemImage: "folder.badge.plus",
             description: "Select which repositories to monitor.",
-            settingsTab: .repositories
+            showsSettingsButton: true
         )
     }
 
@@ -111,7 +111,7 @@ struct MenuBarView: View {
         title: String,
         systemImage: String,
         description: String,
-        settingsTab: SettingsTab? = nil
+        showsSettingsButton: Bool = false
     ) -> some View {
         VStack(spacing: 12) {
             Image(systemName: systemImage)
@@ -130,11 +130,11 @@ struct MenuBarView: View {
                     .lineLimit(1)
             }
 
-            if let settingsTab {
+            if showsSettingsButton {
                 Button("Open Settings") {
-                    showSettings(tab: settingsTab)
+                    showSettings()
                 }
-                    .controlSize(.small)
+                .controlSize(.small)
             }
         }
         .padding(.horizontal, 36)
@@ -187,10 +187,7 @@ struct MenuBarView: View {
         .padding(.vertical, 9)
     }
 
-    private func showSettings(tab: SettingsTab? = nil) {
-        if let tab {
-            store.selectedSettingsTab = tab
-        }
+    private func showSettings() {
         dismiss()
         openSettings()
         NSApp.activate()
