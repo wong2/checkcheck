@@ -96,6 +96,57 @@ actor GitHubClient {
         }
     }
 
+    func commitStatuses(
+        repository: GitHubRepository,
+        sha: String,
+        token: String
+    ) async throws -> [GitHubCommitStatus] {
+        var statuses: [GitHubCommitStatus] = []
+        var page = 1
+
+        while true {
+            let response: GitHubCommitStatusesResponse = try await request(
+                path: "/repos/\(encodedName(repository))/commits/\(sha)/status",
+                queryItems: [
+                    URLQueryItem(name: "per_page", value: "100"),
+                    URLQueryItem(name: "page", value: String(page))
+                ],
+                token: token
+            )
+            statuses.append(contentsOf: response.statuses)
+            guard statuses.count < response.totalCount,
+                  response.statuses.count == 100 else { return statuses }
+            page += 1
+        }
+    }
+
+    func commitStatuses(
+        repository: GitHubRepository,
+        shas: [String],
+        token: String
+    ) async -> [String: [GitHubCommitStatus]] {
+        await withTaskGroup(of: (String, [GitHubCommitStatus]?).self) { group in
+            for sha in shas {
+                group.addTask {
+                    let statuses = try? await self.commitStatuses(
+                        repository: repository,
+                        sha: sha,
+                        token: token
+                    )
+                    return (sha, statuses)
+                }
+            }
+
+            var statusesBySHA: [String: [GitHubCommitStatus]] = [:]
+            for await (sha, statuses) in group {
+                if let statuses {
+                    statusesBySHA[sha] = statuses
+                }
+            }
+            return statusesBySHA
+        }
+    }
+
     func commits(
         repository: GitHubRepository,
         limit: Int,

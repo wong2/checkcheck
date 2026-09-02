@@ -103,7 +103,7 @@ struct MenuBarView: View {
             systemImage: "circle.dotted",
             description: store.isRefreshing
                 ? "Checking GitHub now…"
-                : "No Check Runs on the latest commits yet."
+                : "No status checks on the latest commits yet."
         )
     }
 

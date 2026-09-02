@@ -59,6 +59,78 @@ final class StatusChangeDetectorTests: XCTestCase {
         XCTAssertEqual(MonitoredCheck.phase(status: "queued", conclusion: nil), .queued)
     }
 
+    func testCommitStatusMapping() {
+        XCTAssertEqual(MonitoredCheck.phase(statusState: "pending"), .running)
+        XCTAssertEqual(MonitoredCheck.phase(statusState: "success"), .success)
+        XCTAssertEqual(MonitoredCheck.phase(statusState: "error"), .failure)
+        XCTAssertEqual(MonitoredCheck.phase(statusState: "failure"), .failure)
+    }
+
+    func testCommitStatusBecomesVisibleCheck() {
+        let updatedAt = Date(timeIntervalSince1970: 200)
+        let status = GitHubCommitStatus(
+            id: 50,
+            state: "success",
+            description: "Deployment succeeded",
+            targetURL: URL(string: "https://railway.com/deployment/50"),
+            context: "notebooklm-web-importer.com - nblm-site",
+            createdAt: updatedAt,
+            updatedAt: updatedAt,
+            creator: GitHubStatusCreator(login: "railway-app")
+        )
+
+        let check = MonitoredCheck(
+            status: status,
+            repository: repository,
+            headSHA: "abc123",
+            commitMessage: "Fix pnpm setup in Docker build"
+        )
+
+        XCTAssertEqual(check.name, status.context)
+        XCTAssertEqual(check.phase, .success)
+        XCTAssertEqual(check.url, status.targetURL)
+        XCTAssertEqual(check.headSHA, "abc123")
+        XCTAssertEqual(check.commitMessage, "Fix pnpm setup in Docker build")
+        XCTAssertEqual(check.providerName, "railway-app")
+        XCTAssertEqual(check.updatedAt, updatedAt)
+    }
+
+    func testCommitStatusIdentityIsStableAcrossTransitions() {
+        let pending = makeStatus(id: 51, state: "pending")
+        let success = makeStatus(id: 52, state: "success")
+
+        let pendingCheck = MonitoredCheck(
+            status: pending,
+            repository: repository,
+            headSHA: "abc123"
+        )
+        let successCheck = MonitoredCheck(
+            status: success,
+            repository: repository,
+            headSHA: "abc123",
+            previous: pendingCheck
+        )
+
+        XCTAssertEqual(pendingCheck.id, successCheck.id)
+        XCTAssertNotEqual(pendingCheck.runID, successCheck.runID)
+        XCTAssertEqual(successCheck.phase, .success)
+    }
+
+    func testLegacyCachedCheckDecodesWithoutSourceKey() throws {
+        let check = makeCheck(id: 53, status: "completed", conclusion: "success")
+        let encoded = try JSONEncoder().encode(check)
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        )
+        object.removeValue(forKey: "sourceKey")
+        let legacyData = try JSONSerialization.data(withJSONObject: object)
+
+        let decoded = try JSONDecoder().decode(MonitoredCheck.self, from: legacyData)
+
+        XCTAssertNil(decoded.sourceKey)
+        XCTAssertEqual(decoded.id, check.id)
+    }
+
     func testCheckPrefersGitHubPageOverProviderDetails() {
         let githubURL = URL(string: "https://github.com/wong2/checkcheck/runs/5")!
         let providerURL = URL(string: "https://dash.cloudflare.com/builds/5")!
@@ -287,6 +359,23 @@ final class StatusChangeDetectorTests: XCTestCase {
             completedAt: completedAt,
             headSHA: headSHA,
             app: GitHubCheckApp(name: "Cloudflare Workers")
+        )
+    }
+
+    private func makeStatus(
+        id: Int64,
+        state: String,
+        context: String = "notebooklm-web-importer.com - nblm-site"
+    ) -> GitHubCommitStatus {
+        GitHubCommitStatus(
+            id: id,
+            state: state,
+            description: nil,
+            targetURL: URL(string: "https://railway.com/deployment/\(id)"),
+            context: context,
+            createdAt: Date(timeIntervalSince1970: Double(id)),
+            updatedAt: Date(timeIntervalSince1970: Double(id)),
+            creator: GitHubStatusCreator(login: "railway-app")
         )
     }
 }

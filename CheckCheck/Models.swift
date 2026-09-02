@@ -117,6 +117,38 @@ struct GitHubCheckApp: Decodable, Sendable {
     let name: String
 }
 
+struct GitHubCommitStatusesResponse: Decodable, Sendable {
+    let statuses: [GitHubCommitStatus]
+    let totalCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case statuses
+        case totalCount = "total_count"
+    }
+}
+
+struct GitHubCommitStatus: Decodable, Sendable {
+    let id: Int64
+    let state: String
+    let description: String?
+    let targetURL: URL?
+    let context: String
+    let createdAt: Date
+    let updatedAt: Date
+    let creator: GitHubStatusCreator?
+
+    enum CodingKeys: String, CodingKey {
+        case id, state, description, context, creator
+        case targetURL = "target_url"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+struct GitHubStatusCreator: Decodable, Sendable {
+    let login: String
+}
+
 struct GitHubCommit: Decodable, Sendable {
     let sha: String
     let commit: Details
@@ -160,6 +192,7 @@ enum CheckPhase: String, Codable, Sendable {
 
 struct MonitoredCheck: Codable, Identifiable, Hashable, Sendable {
     let runID: Int64
+    let sourceKey: String?
     let repositoryID: Int64
     let repositoryName: String
     let name: String
@@ -170,7 +203,9 @@ struct MonitoredCheck: Codable, Identifiable, Hashable, Sendable {
     let providerName: String?
     let updatedAt: Date
 
-    var id: String { "\(repositoryID):\(runID)" }
+    var id: String { "\(repositoryID):\(sourceKey ?? String(runID))" }
+
+    var sourceKind: String { sourceKey == nil ? "check" : "status" }
 
     init(
         run: GitHubCheckRun,
@@ -180,6 +215,7 @@ struct MonitoredCheck: Codable, Identifiable, Hashable, Sendable {
         now: Date = .now
     ) {
         runID = run.id
+        sourceKey = nil
         repositoryID = repository.id
         repositoryName = repository.fullName
         name = run.name
@@ -199,6 +235,31 @@ struct MonitoredCheck: Codable, Identifiable, Hashable, Sendable {
             ?? now
     }
 
+    init(
+        status: GitHubCommitStatus,
+        repository: GitHubRepository,
+        headSHA: String,
+        commitMessage: String? = nil,
+        previous: MonitoredCheck? = nil
+    ) {
+        runID = status.id
+        sourceKey = Self.commitStatusSourceKey(headSHA: headSHA, context: status.context)
+        repositoryID = repository.id
+        repositoryName = repository.fullName
+        name = status.context
+        phase = Self.phase(statusState: status.state)
+        url = status.targetURL ?? repository.htmlURL
+        self.headSHA = headSHA
+        self.commitMessage = commitMessage
+            ?? (previous?.headSHA == headSHA ? previous?.commitMessage : nil)
+        providerName = status.creator?.login
+        updatedAt = status.updatedAt
+    }
+
+    static func commitStatusSourceKey(headSHA: String, context: String) -> String {
+        "status:\(headSHA.lowercased()):\(context.lowercased())"
+    }
+
     static func phase(status: String, conclusion: String?) -> CheckPhase {
         switch status {
         case "queued", "waiting", "pending", "requested": return .queued
@@ -213,6 +274,15 @@ struct MonitoredCheck: Codable, Identifiable, Hashable, Sendable {
             default: return .unknown
             }
         default: return .unknown
+        }
+    }
+
+    static func phase(statusState: String) -> CheckPhase {
+        switch statusState {
+        case "pending": .running
+        case "success": .success
+        case "error", "failure": .failure
+        default: .unknown
         }
     }
 }
@@ -255,7 +325,7 @@ enum VisibleCheckSelector {
         var bestByKey: [String: MonitoredCheck] = [:]
 
         for check in checks {
-            let key = "\(check.repositoryID)\u{0}\(check.name.lowercased())"
+            let key = "\(check.repositoryID)\u{0}\(check.sourceKind)\u{0}\(check.name.lowercased())"
             guard let existing = bestByKey[key] else {
                 bestByKey[key] = check
                 continue

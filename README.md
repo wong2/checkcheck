@@ -1,12 +1,12 @@
 # CheckCheck
 
-A small native macOS menu bar app that watches GitHub Check Runs on selected repositories and sends local notifications when their state changes.
+A small native macOS menu bar app that watches GitHub Checks and commit statuses on selected repositories and sends local notifications when their state changes.
 
 ## Features
 
 - Select repositories from your GitHub account.
 - Watch the latest commit on each repository's default branch.
-- See queued, running, successful, failed, skipped, and cancelled Checks.
+- See queued, running, successful, failed, skipped, and cancelled status checks.
 - Receive notifications for new runs and status transitions.
 - Open the exact Check details page from a row or notification.
 - Keep the GitHub token in macOS Keychain.
@@ -42,4 +42,4 @@ The token never leaves the Mac except in authenticated requests to `api.github.c
 
 ## MVP behavior
 
-CheckCheck polls every 10 seconds while a Check is queued or running, and once per minute while idle. It monitors current Check Runs from recent commits on each selected repository's default branch. GitHub API rate limits and individual API errors are shown in the popover footer.
+CheckCheck polls every 10 seconds while a check is queued or running, and once per minute while idle. It monitors current Check Runs and commit statuses from recent commits on each selected repository's default branch. GitHub API rate limits and individual API errors are shown in the popover footer.

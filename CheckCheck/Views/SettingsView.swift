@@ -10,6 +10,9 @@ struct SettingsView: View {
                 .environmentObject(store)
 
             if store.isConnected {
+                NotificationSettingsView()
+                    .environmentObject(store)
+
                 RepositorySettingsView()
                     .environmentObject(store)
                     .frame(maxHeight: .infinity)
@@ -66,24 +69,23 @@ private struct AccountSettingsView: View {
                     Button("Disconnect", role: .destructive) {
                         store.disconnect()
                     }
+                    .controlSize(.small)
                 }
             }
-            .padding(14)
+            .padding(.horizontal, 16)
+            .padding(.top, 13)
+            .padding(.bottom, store.isConnected ? 8 : 13)
 
             if store.isConnected {
-                Divider()
+                Label("Token stored in Keychain", systemImage: "lock.fill")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 58)
+                .padding(.trailing, 16)
+                .padding(.bottom, 13)
+            }
 
-                HStack(spacing: 20) {
-                    statusItem("Token", value: "Stored in Keychain", systemImage: "lock.fill")
-
-                    Divider()
-                        .frame(height: 24)
-
-                    notificationStatus
-                }
-                .padding(.horizontal, 14)
-                .frame(height: 46)
-            } else {
+            if !store.isConnected {
                 Divider()
 
                 VStack(alignment: .leading, spacing: 10) {
@@ -133,9 +135,6 @@ private struct AccountSettingsView: View {
             }
         }
         .settingsCard()
-        .task {
-            await store.refreshNotificationPermission()
-        }
     }
 
     private var accountSubtitle: String {
@@ -145,50 +144,72 @@ private struct AccountSettingsView: View {
         return "Connect once, then choose the repositories to monitor."
     }
 
-    private func statusItem(_ title: String, value: String, systemImage: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: systemImage)
-                .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.callout)
+    private func connect() {
+        Task {
+            if await store.connect(token: token) {
+                token = ""
             }
         }
     }
+}
 
-    @ViewBuilder
-    private var notificationStatus: some View {
-        switch store.notificationPermission {
-        case .unknown:
-            HStack(spacing: 8) {
-                ProgressView()
-                    .controlSize(.small)
-                Text("Checking notifications…")
+private struct NotificationSettingsView: View {
+    @EnvironmentObject private var store: AppStore
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: notificationSystemImage)
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 30, height: 30)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Notifications")
+                    .font(.headline)
+
+                Text(notificationStatusText)
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
-        case .enabled:
-            statusItem("Notifications", value: "Enabled", systemImage: "bell.fill")
-        case .disabled:
-            HStack(spacing: 10) {
-                statusItem("Notifications", value: "Disabled", systemImage: "bell.slash.fill")
 
+            Spacer()
+
+            if store.notificationPermission == .unknown {
+                ProgressView()
+                    .controlSize(.small)
+                    .help("Checking notification permission")
+            } else {
                 Button("Open Settings") {
                     store.openNotificationSettings()
                 }
                 .controlSize(.small)
             }
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 13)
+        .settingsCard()
+        .task {
+            await store.refreshNotificationPermission()
+        }
     }
 
-    private func connect() {
-        Task {
-            if await store.connect(token: token) {
-                token = ""
-            }
+    private var notificationSystemImage: String {
+        switch store.notificationPermission {
+        case .unknown, .enabled:
+            return "bell.fill"
+        case .disabled:
+            return "bell.slash.fill"
+        }
+    }
+
+    private var notificationStatusText: String {
+        switch store.notificationPermission {
+        case .unknown:
+            return "Checking permission…"
+        case .enabled:
+            return "Enabled"
+        case .disabled:
+            return "Disabled"
         }
     }
 }
@@ -217,9 +238,6 @@ private struct RepositorySettingsView: View {
                 Text("\(store.selectedRepositoryCount) monitored")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 4)
-                    .background(.quaternary, in: Capsule())
 
                 Button {
                     Task { await store.reloadRepositories() }
@@ -233,7 +251,8 @@ private struct RepositorySettingsView: View {
                 .help("Reload repositories")
                 .accessibilityLabel("Reload repositories")
             }
-            .padding(14)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
 
             Divider()
 
@@ -255,7 +274,7 @@ private struct RepositorySettingsView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.menu)
-                    .fixedSize()
+                    .frame(width: 150, alignment: .leading)
                 }
 
                 HStack(spacing: 7) {
@@ -287,8 +306,8 @@ private struct RepositorySettingsView: View {
                         .stroke(Color(nsColor: .separatorColor).opacity(0.55))
                 }
             }
-            .padding(.horizontal, 14)
-            .frame(height: 44)
+            .padding(.horizontal, 16)
+            .frame(height: 42)
 
             Divider()
 
@@ -313,47 +332,61 @@ private struct RepositorySettingsView: View {
                     .foregroundStyle(.secondary)
             }
         } else {
-            List(store.filteredRepositories) { repository in
-                let isMonitored = store.selectedRepositoryIDs.contains(repository.id)
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(store.filteredRepositories) { repository in
+                        repositoryRow(repository)
 
-                Button {
-                    store.setRepository(repository, selected: !isMonitored)
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: isMonitored ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(isMonitored ? Color.accentColor : Color.secondary.opacity(0.45))
-
-                        Image(systemName: repository.isPrivate ? "lock.fill" : "shippingbox")
-                            .foregroundStyle(.secondary)
-                            .frame(width: 16)
-
-                        Text(repository.shortName)
-                            .font(.body)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .layoutPriority(1)
-
-                        Spacer()
-
-                        Text(repository.defaultBranch)
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .frame(maxWidth: 140, alignment: .trailing)
+                        if repository.id != store.filteredRepositories.last?.id {
+                            Divider()
+                                .padding(.leading, 58)
+                        }
                     }
-                    .padding(.vertical, 4)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(
-                    isMonitored ? "Stop monitoring \(repository.shortName)" : "Monitor \(repository.shortName)"
-                )
-                .accessibilityValue(isMonitored ? "Monitored" : "Not monitored")
+                .padding(.horizontal, 16)
             }
-            .listStyle(.inset)
         }
+    }
+
+    private func repositoryRow(_ repository: GitHubRepository) -> some View {
+        let isMonitored = store.selectedRepositoryIDs.contains(repository.id)
+
+        return Button {
+            store.setRepository(repository, selected: !isMonitored)
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: isMonitored ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(isMonitored ? Color.accentColor : Color.secondary.opacity(0.45))
+                    .frame(width: 18)
+
+                Image(systemName: repository.isPrivate ? "lock.fill" : "shippingbox")
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16)
+
+                Text(repository.shortName)
+                    .font(.callout)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .layoutPriority(1)
+
+                Spacer()
+
+                Text(repository.defaultBranch)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .frame(maxWidth: 140, alignment: .trailing)
+            }
+            .frame(minHeight: 38)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(
+            isMonitored ? "Stop monitoring \(repository.shortName)" : "Monitor \(repository.shortName)"
+        )
+        .accessibilityValue(isMonitored ? "Monitored" : "Not monitored")
     }
 }
 

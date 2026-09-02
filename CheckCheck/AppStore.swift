@@ -38,7 +38,7 @@ final class AppStore: ObservableObject {
     private let defaults = UserDefaults.standard
     private var snapshots: [String: CheckSnapshot] = [:]
     private var baselineRepositoryIDs: Set<Int64> = []
-    private var checkRunsByCommit: [String: [MonitoredCheck]] = [:]
+    private var checksByCommit: [String: [MonitoredCheck]] = [:]
     private var pollingTask: Task<Void, Never>?
     private let activePollingInterval: Duration = .seconds(10)
     private let idlePollingInterval: Duration = .seconds(60)
@@ -111,7 +111,7 @@ final class AppStore: ObservableObject {
         checks = load([MonitoredCheck].self, key: Keys.checks) ?? []
         for check in checks {
             guard let headSHA = check.headSHA else { continue }
-            checkRunsByCommit["\(check.repositoryID):\(headSHA)", default: []].append(check)
+            checksByCommit["\(check.repositoryID):\(headSHA)", default: []].append(check)
         }
         snapshots = load([String: CheckSnapshot].self, key: Keys.snapshots) ?? [:]
         baselineRepositoryIDs = load(Set<Int64>.self, key: Keys.baselineRepositories) ?? []
@@ -233,44 +233,89 @@ final class AppStore: ObservableObject {
                 )
                 commitSHAsNewestFirstByRepository[repository.id] = commits.map(\.sha)
                 let validKeys = Set(commits.map { "\(repository.id):\($0.sha)" })
-                checkRunsByCommit = checkRunsByCommit.filter {
+                checksByCommit = checksByCommit.filter {
                     !$0.key.hasPrefix("\(repository.id):") || validKeys.contains($0.key)
                 }
 
                 let headSHA = commits.first?.sha
                 let shasToRefresh = commits.compactMap { commit -> String? in
-                    let cachedRuns = checkRunsByCommit["\(repository.id):\(commit.sha)"]
+                    let cachedChecks = checksByCommit["\(repository.id):\(commit.sha)"]
                     guard commit.sha == headSHA
-                            || cachedRuns == nil
-                            || cachedRuns?.contains(where: { !$0.phase.isCompleted }) == true else {
+                            || cachedChecks == nil
+                            || cachedChecks?.contains(where: { !$0.phase.isCompleted }) == true else {
                         return nil
                     }
                     return commit.sha
                 }
-                let refreshedRunsBySHA = await client.checkRuns(
+                async let refreshedRunsBySHA = client.checkRuns(
                     repository: repository,
                     shas: shasToRefresh,
                     token: token
                 )
+                async let refreshedStatusesBySHA = client.commitStatuses(
+                    repository: repository,
+                    shas: shasToRefresh,
+                    token: token
+                )
+                let (runsBySHA, statusesBySHA) = await (
+                    refreshedRunsBySHA,
+                    refreshedStatusesBySHA
+                )
 
                 for commit in commits {
                     let key = "\(repository.id):\(commit.sha)"
-                    guard let runs = refreshedRunsBySHA[commit.sha] else { continue }
-                    let previousChecks = Dictionary(
-                        uniqueKeysWithValues: (checkRunsByCommit[key] ?? []).map { ($0.runID, $0) }
-                    )
-                    checkRunsByCommit[key] = runs.map {
-                        MonitoredCheck(
-                            run: $0,
-                            repository: repository,
-                            commitMessage: commit.subject,
-                            previous: previousChecks[$0.id]
-                        )
+                    let previousChecks = checksByCommit[key] ?? []
+                    guard runsBySHA[commit.sha] != nil || statusesBySHA[commit.sha] != nil else {
+                        continue
                     }
+
+                    var refreshedCommitChecks: [MonitoredCheck] = []
+                    if let runs = runsBySHA[commit.sha] {
+                        let previousRuns = Dictionary(
+                            uniqueKeysWithValues: previousChecks
+                                .filter { $0.sourceKey == nil }
+                                .map { ($0.runID, $0) }
+                        )
+                        refreshedCommitChecks.append(contentsOf: runs.map {
+                            MonitoredCheck(
+                                run: $0,
+                                repository: repository,
+                                commitMessage: commit.subject,
+                                previous: previousRuns[$0.id]
+                            )
+                        })
+                    } else {
+                        refreshedCommitChecks.append(contentsOf: previousChecks.filter { $0.sourceKey == nil })
+                    }
+
+                    if let statuses = statusesBySHA[commit.sha] {
+                        let previousStatuses = Dictionary(
+                            uniqueKeysWithValues: previousChecks.compactMap { check in
+                                check.sourceKey.map { ($0, check) }
+                            }
+                        )
+                        refreshedCommitChecks.append(contentsOf: statuses.map { status in
+                            let sourceKey = MonitoredCheck.commitStatusSourceKey(
+                                headSHA: commit.sha,
+                                context: status.context
+                            )
+                            return MonitoredCheck(
+                                status: status,
+                                repository: repository,
+                                headSHA: commit.sha,
+                                commitMessage: commit.subject,
+                                previous: previousStatuses[sourceKey]
+                            )
+                        })
+                    } else {
+                        refreshedCommitChecks.append(contentsOf: previousChecks.filter { $0.sourceKey != nil })
+                    }
+
+                    checksByCommit[key] = refreshedCommitChecks
                 }
 
                 let repositoryChecks = commits.flatMap {
-                    checkRunsByCommit["\(repository.id):\($0.sha)"] ?? []
+                    checksByCommit["\(repository.id):\($0.sha)"] ?? []
                 }
                 let suppress = !baselineRepositoryIDs.contains(repository.id)
                 let recentThreshold = Date.now.addingTimeInterval(-300)
