@@ -395,7 +395,7 @@ private extension View {
         background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
             .overlay {
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color(nsColor: .separatorColor).opacity(0.55))
+                    .stroke(Color(nsColor: .separatorColor))
             }
             .clipShape(RoundedRectangle(cornerRadius: 10))
     }
