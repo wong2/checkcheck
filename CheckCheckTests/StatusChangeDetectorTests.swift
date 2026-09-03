@@ -66,6 +66,51 @@ final class StatusChangeDetectorTests: XCTestCase {
         XCTAssertEqual(MonitoredCheck.phase(statusState: "failure"), .failure)
     }
 
+    func testRelativeTimeFormattingAtDisplayBoundaries() {
+        let updatedAt = Date(timeIntervalSince1970: 1_000_000)
+
+        XCTAssertEqual(
+            CheckRelativeTimeFormatter.string(
+                since: updatedAt,
+                relativeTo: updatedAt.addingTimeInterval(59)
+            ),
+            "now"
+        )
+        XCTAssertEqual(
+            CheckRelativeTimeFormatter.string(
+                since: updatedAt,
+                relativeTo: updatedAt.addingTimeInterval(60)
+            ),
+            "1m ago"
+        )
+        XCTAssertEqual(
+            CheckRelativeTimeFormatter.string(
+                since: updatedAt,
+                relativeTo: updatedAt.addingTimeInterval(3_600)
+            ),
+            "1h ago"
+        )
+        XCTAssertEqual(
+            CheckRelativeTimeFormatter.string(
+                since: updatedAt,
+                relativeTo: updatedAt.addingTimeInterval(86_400)
+            ),
+            "1d ago"
+        )
+    }
+
+    func testRelativeTimeFormattingTreatsFutureDatesAsNow() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+
+        XCTAssertEqual(
+            CheckRelativeTimeFormatter.string(
+                since: now.addingTimeInterval(60),
+                relativeTo: now
+            ),
+            "now"
+        )
+    }
+
     func testCommitStatusBecomesVisibleCheck() {
         let updatedAt = Date(timeIntervalSince1970: 200)
         let status = GitHubCommitStatus(

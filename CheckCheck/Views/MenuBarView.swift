@@ -212,6 +212,20 @@ struct MenuBarView: View {
     }
 }
 
+enum CheckRelativeTimeFormatter {
+    static func string(since updatedAt: Date, relativeTo now: Date) -> String {
+        let seconds = max(0, now.timeIntervalSince(updatedAt))
+        return switch seconds {
+        case ..<60: "now"
+        case ..<3_600: "\(Int(seconds / 60))m ago"
+        case ..<86_400: "\(Int(seconds / 3_600))h ago"
+        case ..<604_800: "\(Int(seconds / 86_400))d ago"
+        case ..<2_592_000: "\(Int(seconds / 604_800))w ago"
+        default: updatedAt.formatted(.dateTime.month(.abbreviated).day())
+        }
+    }
+}
+
 private struct CheckRow: View {
     let check: MonitoredCheck
 
@@ -241,10 +255,15 @@ private struct CheckRow: View {
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Text(relativeTime)
-                        .foregroundStyle(.tertiary)
-                        .fixedSize()
-                        .help(check.updatedAt.formatted(date: .abbreviated, time: .shortened))
+                    TimelineView(.periodic(from: .now, by: 60)) { context in
+                        Text(CheckRelativeTimeFormatter.string(
+                            since: check.updatedAt,
+                            relativeTo: context.date
+                        ))
+                            .foregroundStyle(.tertiary)
+                            .fixedSize()
+                            .help(check.updatedAt.formatted(date: .abbreviated, time: .shortened))
+                    }
                 }
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
@@ -264,18 +283,6 @@ private struct CheckRow: View {
 
     private var shortRepositoryName: String {
         check.repositoryName.split(separator: "/").last.map(String.init) ?? check.repositoryName
-    }
-
-    private var relativeTime: String {
-        let seconds = max(0, Date.now.timeIntervalSince(check.updatedAt))
-        return switch seconds {
-        case ..<60: "now"
-        case ..<3_600: "\(Int(seconds / 60))m ago"
-        case ..<86_400: "\(Int(seconds / 3_600))h ago"
-        case ..<604_800: "\(Int(seconds / 86_400))d ago"
-        case ..<2_592_000: "\(Int(seconds / 604_800))w ago"
-        default: check.updatedAt.formatted(.dateTime.month(.abbreviated).day())
-        }
     }
 
     private var symbol: String {
