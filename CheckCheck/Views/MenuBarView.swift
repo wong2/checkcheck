@@ -28,7 +28,7 @@ struct MenuBarView: View {
             footer
         }
         .frame(width: 380, height: 440)
-        .background(.regularMaterial)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 
     private var header: some View {
