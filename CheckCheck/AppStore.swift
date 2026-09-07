@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import Foundation
+import ServiceManagement
 
 @MainActor
 final class AppStore: ObservableObject {
@@ -13,6 +14,8 @@ final class AppStore: ObservableObject {
     @Published private(set) var lastRefresh: Date?
     @Published private(set) var errorMessage: String?
     @Published private(set) var notificationPermission = NotificationPermission.unknown
+    @Published private(set) var launchAtLoginStatus = SMAppService.mainApp.status
+    @Published private(set) var launchAtLoginError: String?
     @Published var repositorySearch = ""
     @Published var selectedRepositoryOwner = ""
     @Published var selectedRepositoryIDs: Set<Int64> = [] {
@@ -31,6 +34,7 @@ final class AppStore: ObservableObject {
         static let snapshots = "snapshots"
         static let baselineRepositories = "baselineRepositories"
         static let user = "user"
+        static let launchAtLoginInitialized = "launchAtLoginInitialized"
     }
 
     private let client = GitHubClient()
@@ -117,6 +121,14 @@ final class AppStore: ObservableObject {
         baselineRepositoryIDs = load(Set<Int64>.self, key: Keys.baselineRepositories) ?? []
         user = load(GitHubUser.self, key: Keys.user)
         selectedRepositoryOwner = user?.login ?? ""
+
+        // Register only once so a later change in System Settings is respected.
+        if !defaults.bool(forKey: Keys.launchAtLoginInitialized) {
+            defaults.set(true, forKey: Keys.launchAtLoginInitialized)
+            if launchAtLoginStatus == .notRegistered {
+                setLaunchAtLogin(true)
+            }
+        }
 
         Task { [weak self] in
             guard let self else { return }
@@ -374,6 +386,32 @@ final class AppStore: ObservableObject {
             string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension"
         ) else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    func refreshLaunchAtLoginStatus() {
+        launchAtLoginStatus = SMAppService.mainApp.status
+    }
+
+    func setLaunchAtLogin(_ enabled: Bool) {
+        launchAtLoginError = nil
+        do {
+            if enabled {
+                if SMAppService.mainApp.status == .requiresApproval {
+                    SMAppService.openSystemSettingsLoginItems()
+                } else if SMAppService.mainApp.status != .enabled {
+                    try SMAppService.mainApp.register()
+                }
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+        } catch {
+            launchAtLoginError = "Could not update launch at login: \(error.localizedDescription)"
+        }
+        refreshLaunchAtLoginStatus()
+    }
+
+    func openLoginItemsSettings() {
+        SMAppService.openSystemSettingsLoginItems()
     }
 
     private func startPolling() async {

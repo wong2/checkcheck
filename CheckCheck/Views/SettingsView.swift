@@ -9,6 +9,9 @@ struct SettingsView: View {
             AccountSettingsView()
                 .environmentObject(store)
 
+            LaunchAtLoginSettingsView()
+                .environmentObject(store)
+
             if store.isConnected {
                 NotificationSettingsView()
                     .environmentObject(store)
@@ -33,8 +36,64 @@ struct SettingsView: View {
     }
 
     private var minimumWindowHeight: CGFloat {
-        if store.isConnected { return 460 }
-        return store.errorMessage == nil ? 180 : 240
+        if store.isConnected { return 550 }
+        return store.errorMessage == nil ? 270 : 330
+    }
+}
+
+private struct LaunchAtLoginSettingsView: View {
+    @EnvironmentObject private var store: AppStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Image(systemName: "power")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 30, height: 30)
+
+                Toggle(isOn: Binding(
+                    get: { store.launchAtLoginStatus == .enabled },
+                    set: { store.setLaunchAtLogin($0) }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Launch at login")
+                            .font(.headline)
+                        Text("Start CheckCheck automatically when you log in.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .toggleStyle(.switch)
+                .controlSize(.small)
+            }
+
+            if store.launchAtLoginStatus == .requiresApproval {
+                HStack {
+                    Text("Allow CheckCheck in Login Items to enable automatic launch.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Open Settings") { store.openLoginItemsSettings() }
+                        .controlSize(.small)
+                }
+            }
+
+            if let error = store.launchAtLoginError {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .font(.callout)
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 13)
+        .settingsCard()
+        .onAppear { store.refreshLaunchAtLoginStatus() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            store.refreshLaunchAtLoginStatus()
+        }
     }
 }
 

@@ -10,6 +10,7 @@ A small native macOS menu bar app that watches GitHub Checks and commit statuses
 - Receive notifications for new runs and status transitions.
 - Open the exact Check details page from a row or notification.
 - Keep the GitHub token in macOS Keychain.
+- Launch automatically at login by default; turn it off in Settings.
 - Avoid notification noise by treating the first synchronization as a baseline.
 
 ## Build
