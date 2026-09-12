@@ -43,4 +43,17 @@ The token never leaves the Mac except in authenticated requests to `api.github.c
 
 ## MVP behavior
 
-CheckCheck polls every 10 seconds while a check is queued or running, and once per minute while idle. It monitors current Check Runs and commit statuses from recent commits on each selected repository's default branch. GitHub API rate limits and individual API errors are shown in the popover footer.
+CheckCheck polls every 10 seconds while a check is queued or running, and once per minute while idle. It monitors current Check Runs and commit statuses from recent commits on each selected repository's default branch. The popover shows the last complete sync time. Incomplete syncs mark retained results as potentially out of date, with per-repository errors and retry actions in the details popover. Account and repository-list errors appear in their corresponding settings sections.
+
+## Isolated UI validation
+
+Build a QA-only binary with the `CHECKCHECK_QA` compilation condition and a separate bundle identifier:
+
+```sh
+xcodebuild -project CheckCheck.xcodeproj -scheme CheckCheck -configuration Debug \
+  -derivedDataPath /tmp/checkcheck-ui-qa \
+  PRODUCT_BUNDLE_IDENTIFIER=com.wong2.CheckCheck.UIQA \
+  'SWIFT_ACTIVE_COMPILATION_CONDITIONS=DEBUG CHECKCHECK_QA' build
+```
+
+The QA control window switches disconnected, loading, error, connected, empty, and partial-failure fixtures within one process. It also previews the actual popover content and settings in light and dark appearances. Fixtures do not use the Keychain, network, notifications, or login-item registration. Normal builds omit the QA controls. Reuse one QA instance and quit it after validation; keep any production instance running.

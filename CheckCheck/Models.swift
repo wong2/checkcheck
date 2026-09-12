@@ -374,3 +374,30 @@ enum VisibleCheckSelector {
         )
     }
 }
+
+struct RepositorySyncIssue: Identifiable, Equatable {
+    let repositoryID: Int64
+    let repositoryName: String
+    let message: String
+    var id: Int64 { repositoryID }
+}
+
+enum CheckPresentation {
+    static func menuBarSymbol(checks: [MonitoredCheck], hasSyncIssues: Bool) -> String {
+        if hasSyncIssues { return "exclamationmark.triangle" }
+        if checks.contains(where: { $0.phase == .failure }) { return "exclamationmark.circle.fill" }
+        if checks.contains(where: { $0.phase == .running || $0.phase == .queued }) { return "circle.dotted.circle" }
+        if !checks.isEmpty && checks.allSatisfy({ $0.phase == .success || $0.phase == .skipped }) {
+            return "checkmark.circle"
+        }
+        return checks.isEmpty ? "circle.dotted" : "minus.circle"
+    }
+
+    static func repositoryName(for check: MonitoredCheck, among checks: [MonitoredCheck]) -> String {
+        let shortName = check.repositoryName.split(separator: "/").last.map(String.init) ?? check.repositoryName
+        let names = Set(checks.filter {
+            $0.repositoryName.split(separator: "/").last?.lowercased() == shortName.lowercased()
+        }.map { $0.repositoryName.lowercased() })
+        return names.count > 1 ? check.repositoryName : shortName
+    }
+}

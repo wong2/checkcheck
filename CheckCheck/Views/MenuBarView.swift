@@ -5,17 +5,24 @@ struct MenuBarView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openSettings) private var openSettings
     @EnvironmentObject private var store: AppStore
+    @State private var showsSyncDetails = false
 
     var body: some View {
         VStack(spacing: 0) {
             header
             Divider()
+            if !store.syncIssues.isEmpty && !store.checks.isEmpty {
+                syncWarning
+                Divider()
+            }
 
             Group {
                 if !store.isConnected {
                     setupState
                 } else if store.selectedRepositoryCount == 0 {
                     noRepositoriesState
+                } else if store.checks.isEmpty && !store.syncIssues.isEmpty {
+                    syncErrorState
                 } else if store.checks.isEmpty {
                     emptyChecksState
                 } else {
@@ -44,15 +51,22 @@ struct MenuBarView: View {
 
             Spacer()
 
-            Button {
-                showSettings()
+            Menu {
+                Button("Settings…") { showSettings() }
+                    .keyboardShortcut(",")
+                Divider()
+                Button("Quit CheckCheck") { NSApplication.shared.terminate(nil) }
+                    .keyboardShortcut("q")
             } label: {
-                Image(systemName: "gearshape")
-                    .frame(width: 26, height: 26)
+                Image(systemName: "ellipsis.circle")
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .help("Settings")
-            .accessibilityLabel("Settings")
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("CheckCheck menu")
+            .accessibilityLabel("CheckCheck menu")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
@@ -62,11 +76,12 @@ struct MenuBarView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(store.checks) { check in
-                    AccessibleCheckButton(
+                    FocusableCheckButton(
                         label: checkAccessibilityLabel(check),
                         action: { store.open(check) }
                     ) {
-                        CheckRow(check: check)
+                        CheckRow(check: check, repositoryName: store.repositoryDisplayName(for: check),
+                                 isStale: store.syncIssues.contains { $0.repositoryID == check.repositoryID })
                     }
 
                     if check.id != store.checks.last?.id {
@@ -90,7 +105,7 @@ struct MenuBarView: View {
 
     private var noRepositoriesState: some View {
         emptyState(
-            title: "Choose repositories",
+            title: "Choose Repositories",
             systemImage: "folder.badge.plus",
             description: "Select which repositories to monitor.",
             showsSettingsButton: true
@@ -99,11 +114,13 @@ struct MenuBarView: View {
 
     private var emptyChecksState: some View {
         emptyState(
-            title: "Waiting for Checks",
+            title: store.isRefreshing ? "Checking GitHub" : (store.lastRefresh == nil ? "Waiting to Sync" : "No Checks Yet"),
             systemImage: "circle.dotted",
             description: store.isRefreshing
                 ? "Checking GitHub now…"
-                : "No status checks on the latest commits yet."
+                : (store.lastRefresh == nil
+                    ? "The first sync hasn’t finished. Refresh to try again."
+                    : "No status checks on the latest commits yet.")
         )
     }
 
@@ -127,11 +144,11 @@ struct MenuBarView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if showsSettingsButton {
-                Button("Open Settings") {
+                Button("Open Settings…") {
                     showSettings()
                 }
                 .controlSize(.small)
@@ -140,51 +157,129 @@ struct MenuBarView: View {
         .padding(.horizontal, 36)
     }
 
+    private var syncWarning: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle")
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Sync Incomplete")
+                    .font(.system(size: 12, weight: .semibold))
+                Text("Some results may be out of date.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 4)
+            Button("Details…") { showsSyncDetails = true }
+                .popover(isPresented: $showsSyncDetails) { syncDetails }
+                .controlSize(.small)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+    }
+
+    private var syncErrorState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 28))
+                .foregroundStyle(.secondary)
+            Text("Couldn’t Fetch Checks")
+                .font(.system(size: 17, weight: .semibold))
+            Text("The monitored repositories couldn’t be synced. No results are available yet.")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            HStack {
+                Button("Details…") { showsSyncDetails = true }
+                .popover(isPresented: $showsSyncDetails) { syncDetails }
+                Button(store.isRefreshing ? "Retrying…" : "Retry") {
+                    Task { await store.refresh() }
+                }
+                .disabled(!store.canRefresh)
+            }
+            .controlSize(.small)
+        }
+        .padding(28)
+    }
+
+    private var syncDetails: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Sync Issues")
+                .font(.headline)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(store.syncIssues) { issue in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(issue.repositoryName).fontWeight(.semibold)
+                            Text(issue.message).foregroundStyle(.secondary)
+                            if let date = store.repositorySyncDates[issue.repositoryID] {
+                                Text("Last synced: \(date.formatted(date: .abbreviated, time: .shortened))")
+                                    .font(.caption)
+                            } else {
+                                Text("No successful sync yet").font(.caption)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                    }
+                }
+            }
+            .frame(maxHeight: 240)
+            HStack {
+                Button("Retry") { Task { await store.refresh() } }
+                    .disabled(!store.canRefresh)
+                Spacer()
+                Button("Done") { showsSyncDetails = false }
+                    .keyboardShortcut(.cancelAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 330)
+    }
+
     private var footer: some View {
         HStack(spacing: 8) {
-            if let error = store.errorMessage {
-                Text(error)
-                    .foregroundStyle(.red)
-                    .lineLimit(1)
-                    .help(error)
+            TimelineView(.periodic(from: .now, by: 15)) { context in
+                Text(syncDescription(at: context.date))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .help(store.lastRefresh.map {
+                        "All monitored repositories synced by " + $0.formatted(date: .abbreviated, time: .shortened)
+                    } ?? "A complete sync of the monitored repositories has not finished.")
             }
-
-            Spacer()
-
+            Spacer(minLength: 0)
             Button {
                 Task { await store.refresh() }
             } label: {
                 Group {
                     if store.isRefreshing {
-                        ProgressView()
-                            .controlSize(.small)
+                        ProgressView().controlSize(.small)
                     } else {
                         Image(systemName: "arrow.clockwise")
                     }
                 }
-                    .frame(width: 22, height: 22)
-                    .contentShape(Rectangle())
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .contentShape(Rectangle())
-            .disabled(store.isRefreshing || store.selectedRepositoryCount == 0)
+            .buttonStyle(.borderless)
+            .disabled(!store.canRefresh)
+            .keyboardShortcut("r")
             .help(store.isRefreshing ? "Refreshing checks" : "Refresh checks")
             .accessibilityLabel(store.isRefreshing ? "Refreshing checks" : "Refresh checks")
-
-            Button {
-                NSApplication.shared.terminate(nil)
-            } label: {
-                Image(systemName: "power")
-                    .frame(width: 22, height: 22)
-            }
-            .buttonStyle(.plain)
-            .help("Quit CheckCheck")
-            .accessibilityLabel("Quit CheckCheck")
         }
-        .font(.system(size: 11))
-        .foregroundStyle(.secondary)
         .padding(.horizontal, 14)
-        .padding(.vertical, 9)
+        .padding(.vertical, 7)
+    }
+
+    private func syncDescription(at now: Date) -> String {
+        guard store.isConnected else { return "GitHub isn’t connected" }
+        guard store.selectedRepositoryCount > 0 else { return "No repositories selected" }
+        if let date = store.lastRefresh {
+            let prefix = store.syncIssues.isEmpty ? "Synced" : "Last complete sync"
+            return "\(prefix) \(CheckRelativeTimeFormatter.string(since: date, relativeTo: now))"
+        }
+        if store.isRefreshing { return "Syncing repositories…" }
+        return "Waiting for a complete sync"
     }
 
     private func showSettings() {
@@ -202,8 +297,10 @@ struct MenuBarView: View {
     }
 
     private func checkAccessibilityLabel(_ check: MonitoredCheck) -> String {
-        let shortName = check.repositoryName.split(separator: "/").last.map(String.init) ?? check.repositoryName
-        var components = [shortName, check.phase.notificationVerb, check.name]
+        var components = [check.repositoryName, check.phase.notificationVerb, check.name]
+        if store.syncIssues.contains(where: { $0.repositoryID == check.repositoryID }) {
+            components.append("Sync incomplete; result may be out of date")
+        }
         if let commitMessage = check.commitMessage {
             components.append(commitMessage)
         }
@@ -228,6 +325,8 @@ enum CheckRelativeTimeFormatter {
 
 private struct CheckRow: View {
     let check: MonitoredCheck
+    let repositoryName: String
+    let isStale: Bool
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -239,19 +338,28 @@ private struct CheckRow: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(shortRepositoryName)
+                    if isStale {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundStyle(.secondary)
+                            .help("Sync incomplete; this result may be out of date")
+                    }
+                    Text(repositoryName)
+                        .help(check.repositoryName)
                         .font(.system(size: 13, weight: .semibold))
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     Text(check.phase.notificationVerb)
-                        .font(.system(size: 10.5, design: .monospaced))
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(color)
                         .fixedSize()
                 }
 
                 HStack(spacing: 8) {
                     Text(check.name)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.primary)
+                        .help(check.name)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -260,7 +368,7 @@ private struct CheckRow: View {
                             since: check.updatedAt,
                             relativeTo: context.date
                         ))
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(.secondary)
                             .fixedSize()
                             .help(check.updatedAt.formatted(date: .abbreviated, time: .shortened))
                     }
@@ -271,7 +379,8 @@ private struct CheckRow: View {
                 if let commitMessage = check.commitMessage, !commitMessage.isEmpty {
                     Text(commitMessage)
                         .font(.system(size: 11))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
+                        .help(commitMessage)
                         .lineLimit(1)
                 }
             }
@@ -279,10 +388,6 @@ private struct CheckRow: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .contentShape(Rectangle())
-    }
-
-    private var shortRepositoryName: String {
-        check.repositoryName.split(separator: "/").last.map(String.init) ?? check.repositoryName
     }
 
     private var symbol: String {
@@ -308,15 +413,50 @@ private struct CheckRow: View {
     }
 }
 
+private struct FocusableCheckButton<Content: View>: View {
+    let label: String
+    let action: () -> Void
+    @ViewBuilder let content: () -> Content
+    @FocusState private var isFocused: Bool
+    @State private var isHovered = false
+    @State private var isPressed = false
+
+    var body: some View {
+        AccessibleCheckButton(label: label, action: action, onPressChanged: { isPressed = $0 }) {
+            content()
+                .background(Color.primary.opacity(isPressed ? 0.12 : (isHovered ? 0.06 : 0)))
+                .clipped()
+                .onHover { isHovered = $0 }
+        }
+            .focusable()
+            .focused($isFocused)
+            .focusEffectDisabled()
+            .overlay {
+                if isFocused {
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(Color(nsColor: .keyboardFocusIndicatorColor), lineWidth: 2)
+                        .padding(3)
+                        .allowsHitTesting(false)
+                }
+            }
+            .onKeyPress(keys: [.space, .return]) { _ in
+                action()
+                return .handled
+            }
+    }
+}
+
 private struct AccessibleCheckButton<Content: View>: NSViewRepresentable {
     let label: String
     let action: () -> Void
+    let onPressChanged: (Bool) -> Void
     @ViewBuilder let content: () -> Content
 
     func makeNSView(context: Context) -> AccessibleCheckNSButton {
         let button = AccessibleCheckNSButton(frame: .zero)
         button.axLabel = label
         button.onActivate = action
+        button.onPressChanged = onPressChanged
         button.hosts(content())
         return button
     }
@@ -324,6 +464,7 @@ private struct AccessibleCheckButton<Content: View>: NSViewRepresentable {
     func updateNSView(_ nsView: AccessibleCheckNSButton, context: Context) {
         nsView.axLabel = label
         nsView.onActivate = action
+        nsView.onPressChanged = onPressChanged
         nsView.hosts(content())
         nsView.invalidateIntrinsicContentSize()
     }
@@ -334,9 +475,9 @@ private final class AccessibleCheckNSButton: NSButton {
         didSet { needsDisplay = true }
     }
     var onActivate: (() -> Void)?
+    var onPressChanged: ((Bool) -> Void)?
 
     private let host = NSHostingView(rootView: AnyView(EmptyView()))
-    private var tracking = false
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -344,7 +485,7 @@ private final class AccessibleCheckNSButton: NSButton {
         setButtonType(.momentaryChange)
         title = ""
         image = nil
-        focusRingType = .none
+        focusRingType = .none // The SwiftUI focus owner draws the row focus indicator.
         setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         setContentHuggingPriority(.defaultLow, for: .horizontal)
 
@@ -372,18 +513,17 @@ private final class AccessibleCheckNSButton: NSButton {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        if tracking {
-            NSColor.labelColor.withAlphaComponent(0.08).setFill()
-            dirtyRect.fill()
-        }
+        // SwiftUI owns the row background. AppKit's dirtyRect can extend beyond
+        // this view, so painting it here can tint neighboring rows as well.
     }
 
+    // Keep one focus stop per row; SwiftUI owns keyboard navigation and activation.
+    override var acceptsFirstResponder: Bool { false }
+
     override func mouseDown(with event: NSEvent) {
-        tracking = true
-        needsDisplay = true
+        onPressChanged?(true)
+        defer { onPressChanged?(false) }
         super.mouseDown(with: event)
-        tracking = false
-        needsDisplay = true
     }
 
     override func sendAction(_ action: Selector?, to target: Any?) -> Bool {

@@ -424,3 +424,170 @@ final class StatusChangeDetectorTests: XCTestCase {
         )
     }
 }
+
+@MainActor
+final class SyncPresentationTests: XCTestCase {
+    private var domain: String!
+    private var defaults: UserDefaults!
+    private var session: URLSession!
+    private let oldDate = Date(timeIntervalSince1970: 1_000)
+
+    override func setUp() {
+        super.setUp()
+        domain = "CheckCheck.SyncTests.\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: domain)!
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [SyncStubProtocol.self]
+        session = URLSession(configuration: configuration)
+        SyncStubProtocol.respond = { request in
+            let path = request.url!.path
+            if path.hasSuffix("/commits") {
+                return (200, #"[{"sha":"head","commit":{"message":"Test commit"}}]"#)
+            }
+            if path.hasSuffix("/check-runs") {
+                return (200, #"{"check_runs":[{"id":1,"name":"Build","status":"completed","conclusion":"failure","head_sha":"head"}]}"#)
+            }
+            return (200, #"{"statuses":[],"total_count":0}"#)
+        }
+    }
+
+    override func tearDown() {
+        session.invalidateAndCancel()
+        defaults.removePersistentDomain(forName: domain)
+        SyncStubProtocol.respond = nil
+        super.tearDown()
+    }
+
+    func testPartialFailureRetainsOldResultAndDoesNotAdvanceCompleteSyncDate() async throws {
+        let store = try makeStore()
+        let success = SyncStubProtocol.respond!
+        SyncStubProtocol.respond = { request in
+            if request.url!.path.contains("/team/") { return (403, #"{"message":"Rate limit exceeded"}"#) }
+            return success(request)
+        }
+        await store.refresh()
+        XCTAssertEqual(store.syncIssues.map(\.repositoryID), [2])
+        XCTAssertEqual(store.lastRefresh, oldDate)
+        XCTAssertGreaterThan(try XCTUnwrap(store.repositorySyncDates[1]), oldDate)
+        XCTAssertEqual(store.checks.first { $0.repositoryID == 2 }?.phase, .success)
+        XCTAssertEqual(store.menuBarSymbol, "exclamationmark.triangle")
+        XCTAssertNil(store.accountError)
+        XCTAssertNil(store.repositoryError)
+
+        SyncStubProtocol.respond = success
+        await store.refresh()
+        XCTAssertTrue(store.syncIssues.isEmpty)
+        XCTAssertGreaterThan(try XCTUnwrap(store.lastRefresh), oldDate)
+        XCTAssertEqual(store.menuBarSymbol, "exclamationmark.circle.fill")
+    }
+
+    func testMissingCheckEndpointIsNotReportedAsSuccessfulSync() async throws {
+        let store = try makeStore()
+        let success = SyncStubProtocol.respond!
+        SyncStubProtocol.respond = { request in
+            if request.url!.path.hasSuffix("/check-runs") { return (500, #"{"message":"Unavailable"}"#) }
+            return success(request)
+        }
+        await store.refresh()
+        XCTAssertEqual(Set(store.syncIssues.map(\.repositoryID)), [1, 2])
+        XCTAssertEqual(store.lastRefresh, oldDate)
+        XCTAssertEqual(store.checks.count, 2)
+        XCTAssertTrue(store.checks.allSatisfy { $0.phase == .success })
+    }
+
+    func testIncompleteOlderCommitIsRetriedUntilBothSourcesSucceed() async throws {
+        let store = try makeStore(cached: false)
+        let success = SyncStubProtocol.respond!
+        let commits = #"[{"sha":"head","commit":{"message":"New"}},{"sha":"old","commit":{"message":"Old"}}]"#
+        SyncStubProtocol.respond = { request in
+            let path = request.url!.path
+            if path.hasSuffix("/commits") { return (200, commits) }
+            if path.contains("/old/status") { return (500, #"{"message":"Unavailable"}"#) }
+            return success(request)
+        }
+        await store.refresh()
+        XCTAssertEqual(store.syncIssues.count, 2)
+        XCTAssertNil(store.lastRefresh)
+
+        let retried = expectation(description: "Retry incomplete older commit status")
+        retried.expectedFulfillmentCount = 2
+        SyncStubProtocol.respond = { request in
+            let path = request.url!.path
+            if path.hasSuffix("/commits") { return (200, commits) }
+            if path.contains("/old/status") { retried.fulfill() }
+            return success(request)
+        }
+        await store.refresh()
+        await fulfillment(of: [retried], timeout: 2)
+        XCTAssertTrue(store.syncIssues.isEmpty)
+        XCTAssertNotNil(store.lastRefresh)
+    }
+
+    func testFirstSyncFailureDoesNotProduceSuccessTimestamp() async throws {
+        let store = try makeStore(cached: false)
+        SyncStubProtocol.respond = { _ in (503, #"{"message":"Unavailable"}"#) }
+        await store.refresh()
+        XCTAssertNil(store.lastRefresh)
+        XCTAssertTrue(store.checks.isEmpty)
+        XCTAssertEqual(store.syncIssues.count, 2)
+    }
+
+    func testUnavailableSelectedRepositoryRetainsCachedChecksAndReportsIssue() async throws {
+        let store = try makeStore(availableIDs: [1])
+        await store.refresh()
+        XCTAssertEqual(store.syncIssues.map(\.repositoryID), [2])
+        XCTAssertEqual(store.checks.first { $0.repositoryID == 2 }?.repositoryName, "team/checkcheck")
+        XCTAssertEqual(store.lastRefresh, oldDate)
+    }
+
+    func testRepositoryErrorsStayOutOfAccountAndSyncErrors() async throws {
+        let store = try makeStore()
+        SyncStubProtocol.respond = { _ in (403, #"{"message":"Repository access denied"}"#) }
+        await store.reloadRepositories()
+        XCTAssertEqual(store.repositoryError, "Repository access denied")
+        XCTAssertNil(store.accountError)
+        XCTAssertTrue(store.syncIssues.isEmpty)
+        XCTAssertEqual(store.repositories.count, 2)
+    }
+
+    func testRepositoryNamesDisambiguateOwnersWithoutRepeatingOwnerForUniqueNames() async throws {
+        let store = try makeStore()
+        let first = try XCTUnwrap(store.checks.first)
+        XCTAssertEqual(CheckPresentation.repositoryName(for: first, among: store.checks), "octocat/checkcheck")
+        XCTAssertEqual(CheckPresentation.repositoryName(for: first, among: [first]), "checkcheck")
+    }
+
+    private func makeStore(cached: Bool = true, availableIDs: Set<Int64> = [1, 2]) throws -> AppStore {
+        let repositories = ["octocat/checkcheck", "team/checkcheck"].enumerated().map { index, name in
+            GitHubRepository(id: Int64(index + 1), fullName: name, defaultBranch: "main", isPrivate: false,
+                             htmlURL: URL(string: "https://github.com/\(name)")!)
+        }
+        defaults.set(try JSONEncoder().encode(repositories.filter { availableIDs.contains($0.id) }), forKey: "repositories")
+        defaults.set(try JSONEncoder().encode(Set<Int64>([1, 2])), forKey: "selectedRepositories")
+        if cached {
+            let checks = repositories.map { repository in
+                MonitoredCheck(run: GitHubCheckRun(id: 1, name: "Build", status: "completed", conclusion: "success",
+                    htmlURL: repository.htmlURL, detailsURL: nil, startedAt: oldDate, completedAt: oldDate,
+                    headSHA: "head", app: nil), repository: repository)
+            }
+            defaults.set(try JSONEncoder().encode(checks), forKey: "checks")
+            defaults.set(try JSONEncoder().encode([Int64(1): oldDate, Int64(2): oldDate]), forKey: "repositorySyncDates")
+        }
+        return AppStore(defaults: defaults, client: GitHubClient(session: session), automaticallyStart: false,
+                        tokenProvider: { "test-token" })
+    }
+}
+
+private final class SyncStubProtocol: URLProtocol {
+    static var respond: ((URLRequest) -> (Int, String))?
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        let (status, body) = Self.respond!(request)
+        client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: status,
+                            httpVersion: nil, headerFields: nil)!, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(body.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+    override func stopLoading() {}
+}
