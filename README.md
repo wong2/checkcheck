@@ -2,6 +2,10 @@
 
 A small native macOS menu bar app that watches GitHub Checks and commit statuses on selected repositories and sends local notifications when their state changes.
 
+![CheckCheck showing passed, running, and failed checks](Artwork/checkcheck-demo.png)
+
+*Screenshot uses fictional repositories and commit messages.*
+
 ## Features
 
 - Select repositories from your GitHub account.
