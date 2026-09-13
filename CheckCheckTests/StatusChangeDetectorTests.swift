@@ -309,6 +309,19 @@ final class StatusChangeDetectorTests: XCTestCase {
         XCTAssertFalse(selected.contains { $0.phase == .running })
     }
 
+    func testDuplicateCommitSHAsKeepFirstRank() {
+        let newer = makeCheck(id: 11, status: "completed", conclusion: "success", headSHA: "abc")
+        let older = makeCheck(id: 12, status: "completed", conclusion: "failure", headSHA: "def")
+
+        for shas in [["abc", "def", "abc"], ["ABC", "def", "abc"]] {
+            let selected = VisibleCheckSelector.currentChecks(
+                from: [older, newer],
+                commitSHAsNewestFirst: shas
+            )
+            XCTAssertEqual(selected.map(\.runID), [11])
+        }
+    }
+
     func testVisibleChecksSortByUpdatedAtAndLimit() {
         let otherRepository = GitHubRepository(
             id: 99,
@@ -479,6 +492,34 @@ final class SyncPresentationTests: XCTestCase {
         XCTAssertTrue(store.syncIssues.isEmpty)
         XCTAssertGreaterThan(try XCTUnwrap(store.lastRefresh), oldDate)
         XCTAssertEqual(store.menuBarSymbol, "exclamationmark.circle.fill")
+    }
+
+    func testCommitFetchFailureRetainsMultipleChecksForSameSHAAndRecovers() async throws {
+        let store = try makeStore(cached: false)
+        let success = SyncStubProtocol.respond!
+        SyncStubProtocol.respond = { request in
+            if request.url!.path.hasSuffix("/check-runs") {
+                return (200, #"{"check_runs":[{"id":1,"name":"Build","status":"completed","conclusion":"success","head_sha":"head"},{"id":2,"name":"Lint","status":"completed","conclusion":"failure","head_sha":"head"}]}"#)
+            }
+            return success(request)
+        }
+        await store.refresh()
+        let cachedChecks = store.checks
+        let syncDates = store.repositorySyncDates
+        XCTAssertEqual(cachedChecks.count, 4)
+
+        let healthyResponse = SyncStubProtocol.respond!
+        SyncStubProtocol.respond = { _ in (503, #"{"message":"Unavailable"}"#) }
+        await store.refresh()
+        XCTAssertEqual(Set(store.checks.map(\.id)), Set(cachedChecks.map(\.id)))
+        XCTAssertEqual(store.repositorySyncDates, syncDates)
+        XCTAssertEqual(Set(store.syncIssues.map(\.repositoryID)), [1, 2])
+        XCTAssertFalse(store.isRefreshing)
+
+        SyncStubProtocol.respond = healthyResponse
+        await store.refresh()
+        XCTAssertTrue(store.syncIssues.isEmpty)
+        XCTAssertEqual(store.checks.count, 4)
     }
 
     func testMissingCheckEndpointIsNotReportedAsSuccessfulSync() async throws {

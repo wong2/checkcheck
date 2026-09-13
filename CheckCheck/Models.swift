@@ -320,7 +320,10 @@ enum VisibleCheckSelector {
         commitSHAsNewestFirst: [String]
     ) -> [MonitoredCheck] {
         let shaRank = Dictionary(
-            uniqueKeysWithValues: commitSHAsNewestFirst.enumerated().map { ($1.lowercased(), $0) }
+            commitSHAsNewestFirst.enumerated().map { ($1.lowercased(), $0) },
+            // Failed refreshes derive this list from cached checks, which can share a SHA.
+            // Keep the first (newest) rank, including for differently cased duplicates.
+            uniquingKeysWith: { first, _ in first }
         )
         var bestByKey: [String: MonitoredCheck] = [:]
 
